@@ -1,0 +1,29 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        godot: [4.3-stable, 4.7.2-stable]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot ${{ matrix.godot }}
+        env:
+          GODOT_VERSION: ${{ matrix.godot }}
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL -o SHA512-SUMS.txt "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/SHA512-SUMS.txt"
+          echo "$(grep " Godot_v${GODOT_VERSION}_linux.x86_64.zip" SHA512-SUMS.txt | cut -d' ' -f1)  godot.zip" | sha512sum -c -
+          unzip -q godot.zip -d "$RUNNER_TEMP/godot"
+          mv "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}_linux.x86_64" "$RUNNER_TEMP/godot/godot"
+          rm godot.zip SHA512-SUMS.txt
+      - run: $RUNNER_TEMP/godot/godot --headless --import
+      - run: $RUNNER_TEMP/godot/godot --headless --script res://tests/test_protocol.gd

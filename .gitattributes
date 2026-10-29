@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.png binary
+
+# Asset Library and release downloads carry only the addon.
+/.github export-ignore
+/tests export-ignore
+/project.godot export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/CHANGELOG.md export-ignore
