@@ -40,6 +40,19 @@ Plugins**. Turning the plugin on adds the `Hibira` autoload and the
 `HibiraRoom` and `HibiraSync` are global classes, so they are available as
 soon as the files are in the project.
 
+## Set up your app
+
+In the [Hibira portal](https://hibira.io), create an app, then:
+
+- Copy the **key** from the app's **Overview → Credentials**. The secret is
+  shown once, when the app is created; keep it on your backend only.
+- Turn on **Settings → Allow client events**: players send each other client
+  events (`HibiraRoom`, `HibiraSync`).
+- For a web export, add the page's origin (for example
+  `https://yourname.itch.io`) to **Settings → Allowed origins**. The Free
+  plan does not accept `*`, and an empty list blocks browsers. Native builds
+  send no origin and need nothing here.
+
 ## Project Settings
 
 The `Hibira` autoload reads the **Hibira** section of Project Settings and
@@ -120,7 +133,7 @@ party.member_removed.connect(func(id, _info): print(id, " left"))
 party.subscription_error.connect(func(status, message): print("refused: ", status, " ", message))
 
 # Client events go to the other subscribers, not back to you. Turn on client
-# events for the app in the Hibira portal (App → Settings).
+# events for the app in the Hibira portal (Settings → Allow client events).
 party.trigger("client-emote", {"emote": "wave"})
 party.bind("client-emote", func(data, user_id): show_emote(user_id, data.emote))
 ```
@@ -216,8 +229,9 @@ user sign-in (`pusher:signin`).
 ## Limits
 
 Hibira's limits apply as for any client: client events are limited to 10 per
-second per connection and 10 KB each, and presence channels hold up to 100
-members.
+second per connection, an event's data to 4 KB on the Free plan (more on paid
+plans), and presence channels hold up to 100 members. `HibiraSync` splits its
+batches below 4 KB.
 
 ## Development
 

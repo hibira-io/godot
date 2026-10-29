@@ -5,6 +5,9 @@ extends Node
 ## right node. Created on demand as a child of the client; you rarely need it.
 
 const NAME := "HibiraSyncHub"
+## Largest batch to send in one event. Client events are limited to 4 KB on
+## the Free plan (more on paid plans), so batches split below that.
+const MAX_EVENT_BYTES := 3500
 
 var _client: HibiraClient
 var _syncs := {} # channel name -> Array[HibiraSync]
@@ -57,13 +60,13 @@ func flush() -> void:
 			var values := sync._collect()
 			if values.is_empty():
 				continue
-			batch[sync.key()] = values
-			size += JSON.stringify(values).length()
-			# Client events are limited to 10 KB; split well before that.
-			if size > 8000:
+			var entry := JSON.stringify({sync.key(): values}).to_utf8_buffer().size()
+			if size > 0 and size + entry > MAX_EVENT_BYTES:
 				ch.trigger(HibiraSync.EVENT, {"s": batch})
 				batch = {}
 				size = 0
+			batch[sync.key()] = values
+			size += entry
 		if not batch.is_empty():
 			ch.trigger(HibiraSync.EVENT, {"s": batch})
 
