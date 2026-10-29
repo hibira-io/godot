@@ -27,3 +27,4 @@ jobs:
           rm godot.zip SHA512-SUMS.txt
       - run: $RUNNER_TEMP/godot/godot --headless --import
       - run: $RUNNER_TEMP/godot/godot --headless --script res://tests/test_protocol.gd
+      - run: $RUNNER_TEMP/godot/godot --headless --script res://tests/test_sync.gd

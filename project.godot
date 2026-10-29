@@ -9,6 +9,7 @@ config/name="Hibira Realtime"
 config/description="Pusher Channels protocol client for Godot 4, for Hibira and other Pusher-compatible servers."
 config/features=PackedStringArray("4.3")
 config/icon="res://addons/hibira/icon.svg"
+run/main_scene="res://addons/hibira/demo/playground.tscn"
 
 [editor_plugins]
 
