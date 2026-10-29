@@ -4,27 +4,7 @@ extends SceneTree
 #
 #   godot --headless --import && godot --headless --script res://tests/test_protocol.gd
 
-class FakeClient extends HibiraClient:
-	var sent: Array = []
-
-	func _send(message: Dictionary) -> bool:
-		# Round-trip through JSON, as the wire does.
-		sent.append(JSON.parse_string(JSON.stringify(message)))
-		return true
-
-	func frame(event: String, data: Variant, channel := "", user_id := "") -> void:
-		var msg := {"event": event, "data": JSON.stringify(data)}
-		if channel != "":
-			msg.channel = channel
-		if user_id != "":
-			msg.user_id = user_id
-		_handle_message(JSON.stringify(msg))
-
-	func last(event: String) -> Variant:
-		for i in range(sent.size() - 1, -1, -1):
-			if sent[i].event == event:
-				return sent[i]
-		return null
+const FakeClient := preload("res://tests/fake_client.gd")
 
 var failures := 0
 var checks := 0

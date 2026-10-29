@@ -1,0 +1,74 @@
+name: pages
+# The playground (addons/hibira/demo) as a web export on GitHub Pages
+# (https://hibira-io.github.io/godot/). It joins Hibira's public demo app
+# through demo-api.hibira.io, so this needs no secrets.
+#
+# Deploys from main (Settings → Pages → Source: GitHub Actions); on pull
+# requests it only checks that the export works.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: ~/godot
+          key: godot-web-${{ env.GODOT_VERSION }}
+      - name: Install Godot and the web export templates
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}"
+          curl -fsSL -o SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
+          curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          echo "$(grep " Godot_v${GODOT_VERSION}_linux.x86_64.zip" SHA512-SUMS.txt | cut -d' ' -f1)  godot.zip" | sha512sum -c -
+          echo "$(grep " Godot_v${GODOT_VERSION}_export_templates.tpz" SHA512-SUMS.txt | cut -d' ' -f1)  templates.tpz" | sha512sum -c -
+          mkdir -p ~/godot/templates
+          unzip -q godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot/godot
+          unzip -q -j templates.tpz 'templates/web_nothreads_*' 'templates/version.txt' -d ~/godot/templates
+          rm godot.zip templates.tpz SHA512-SUMS.txt
+      - name: Export the playground
+        run: |
+          set -euo pipefail
+          dest=~/.local/share/godot/export_templates/$(cat ~/godot/templates/version.txt)
+          mkdir -p "$dest" build/web
+          cp ~/godot/templates/* "$dest/"
+          ~/godot/godot --headless --import
+          ~/godot/godot --headless --export-release Web build/web/index.html
+          test -s build/web/index.wasm
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

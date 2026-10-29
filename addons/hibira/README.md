@@ -9,12 +9,21 @@ extension, so it runs on every platform Godot exports to, the web included.
   on presence channels
 - Presence members, joins and leaves
 - Reconnects with backoff and subscribes again; answers and sends pings
+- A `Hibira` autoload set up in **Project Settings → Hibira**: no code to
+  connect
+- `HibiraSync`: add it under a node and that node's position (or any other
+  properties) follows its owner on every other player's screen, smoothed
 - `HibiraRoom`: game rooms with seats, a host, ready flags, settings, kick,
   start, and chat with typing indicators. It speaks the same events as
   [@hibira-io/lobby](https://github.com/hibira-io/lobby-js), so Godot and
   browser players can share a room.
 
 Requires Godot 4.3 or later (CI runs 4.3 and 4.7).
+
+**Try it:** the [playground](https://hibira-io.github.io/godot/) is the demo
+scene in this addon exported for the web. Open it in two tabs, or send the
+link with its room code to a friend, and move the dots. In the editor, open
+`addons/hibira/demo/playground.tscn` and press F6; it works with no setup.
 
 For a complete game, see
 [godot-lobby](https://github.com/hibira-io/examples/tree/main/godot-lobby):
@@ -26,10 +35,37 @@ together.
 Copy the `addons/hibira` folder from this repository (or from a
 [release](https://github.com/hibira-io/godot/releases) download) into your
 project's `addons/` folder, then turn it on in **Project → Project Settings →
-Plugins**. `HibiraClient`, `HibiraChannel` and `HibiraRoom` are global
-classes, so they are available as soon as the files are in the project.
+Plugins**. Turning the plugin on adds the `Hibira` autoload and the
+**Hibira** section to Project Settings. `HibiraClient`, `HibiraChannel`,
+`HibiraRoom` and `HibiraSync` are global classes, so they are available as
+soon as the files are in the project.
+
+## Project Settings
+
+The `Hibira` autoload reads the **Hibira** section of Project Settings and
+connects on start when an app key is set.
+
+| Setting | Default | |
+|---|---|---|
+| `hibira/connection/app_key` | | from the Hibira portal; never the secret |
+| `hibira/connection/host` | `ws.hibira.io` | another Pusher-compatible server: host, port, TLS |
+| `hibira/connection/port` | `443` | |
+| `hibira/connection/use_tls` | `true` | |
+| `hibira/connection/auto_connect` | `true` | off: call `Hibira.connect_to_server()` yourself, e.g. after login |
+| `hibira/auth/endpoint` | | signs private and presence channels, see below |
+| `hibira/sync/send_rate` | `8` | `HibiraSync` updates per second, 1 to 10 |
+
+With the autoload, any script can use it directly:
+
+```gdscript
+func _ready() -> void:
+	var scores := Hibira.subscribe("scores")
+	scores.bind("updated", func(data, _user_id): print(data))
+```
 
 ## Connect and listen
+
+Without the autoload, or for a second connection, make a client yourself:
 
 ```gdscript
 var hibira := HibiraClient.new()
@@ -88,6 +124,43 @@ party.subscription_error.connect(func(status, message): print("refused: ", statu
 party.trigger("client-emote", {"emote": "wave"})
 party.bind("client-emote", func(data, user_id): show_emote(user_id, data.emote))
 ```
+
+## Sync nodes
+
+`HibiraSync` keeps properties of its parent in sync on a presence channel.
+The player whose user id is `owner_id` sends them; everyone else receives
+them and moves smoothly towards them. Values from anyone else are ignored,
+since the server stamps each client event with its sender's user id.
+
+```gdscript
+# player.tscn: a CharacterBody2D with a HibiraSync child
+# (channel_name "presence-match-1", properties ["position", "rotation"])
+
+func spawn(user_id: String) -> void:
+	var p := PLAYER.instantiate()
+	p.name = user_id
+	p.get_node("HibiraSync").owner_id = user_id # who drives it
+	p.set_physics_process(user_id == match_channel.my_id) # only steer your own
+	add_child(p)
+```
+
+- Leave `owner_id` empty for nodes each player owns locally; give other
+  players' nodes their user id.
+- Supported values: bool, int, float, String, Vector2/3/4, Vector2i/3i,
+  Color, Quaternion, Rect2, and Arrays and Dictionaries of these.
+- Every synced node on a channel goes out in one batched client event per
+  tick (`hibira/sync/send_rate`), with only the values that changed, and
+  everything again when someone joins. So a scene costs at most 10 events a
+  second however many nodes it syncs, within Hibira's limit for client
+  events.
+- `received(values)` fires when values arrive, and `owner_left` when the
+  owner leaves the channel, which is the moment to despawn the node.
+- `HibiraSync` uses the `Hibira` autoload; set `client_path` to use another
+  `HibiraClient`.
+
+This suits casual and co-op games: positions, animations, scores. It is not
+server-authoritative netcode: each player is trusted with the nodes they
+own.
 
 ## Game rooms
 
@@ -151,10 +224,16 @@ members.
 ```sh
 godot --headless --import
 godot --headless --script res://tests/test_protocol.gd
+godot --headless --script res://tests/test_sync.gd
 ```
 
 The tests feed Pusher protocol frames to the client and check what it sends
 back, with no network.
+
+The playground is the project's main scene. To export it for the web, install
+the export templates and run
+`godot --headless --export-release Web build/web/index.html`; the preset
+turns threads off, so it runs on any static host such as GitHub Pages.
 
 ## License
 
