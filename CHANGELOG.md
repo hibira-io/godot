@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- `HibiraSync` splits its batches below 4 KB, the Free plan's limit for an
+  event's data. Before, a scene syncing many nodes could send a batch the
+  server refused.
+- README: setting up the app (where the key is, client events, allowed
+  origins for web exports) and the per-plan event size.
+
 ## 0.2.0
 
 - `Hibira` autoload and **Project Settings → Hibira** (app key, host, auth

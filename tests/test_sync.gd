@@ -122,6 +122,34 @@ func test_sync() -> void:
 	c.frame("pusher_internal:member_removed", {"user_id": "bob"}, "presence-play")
 	check(left == [true], "owner_left when the owner leaves")
 
+	# Many nodes: batches split below the Free plan's 4 KB per event.
+	var many: Array[Node] = []
+	for i in 120:
+		var n := Node2D.new()
+		n.position = Vector2(i * 1.25, -i * 2.5)
+		var s := HibiraSync.new()
+		s.channel_name = "presence-play"
+		s.sync_id = "crowd/%d" % i
+		s.client_path = c.get_path()
+		n.add_child(s)
+		root.add_child(n)
+		many.append(n)
+	await process_frame
+	c.sent.clear()
+	hub.flush()
+	var sent_keys := {}
+	var biggest := 0
+	for f in c.sent:
+		if f.event == HibiraSync.EVENT:
+			biggest = maxi(biggest, JSON.stringify(f.data).to_utf8_buffer().size())
+			for k in f.data.s:
+				if k.begins_with("crowd/"):
+					sent_keys[k] = true
+	check(biggest > 0 and biggest < 4096, "batches stay under 4 KB (largest %d bytes)" % biggest)
+	check(sent_keys.size() == 120, "every node is sent when split (%d)" % sent_keys.size())
+	for n in many:
+		n.queue_free()
+
 	local.queue_free()
 	remote.queue_free()
 	c.queue_free()
