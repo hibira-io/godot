@@ -17,7 +17,7 @@
   changed values only, smoothed on arrival.
 - Demo scene `addons/hibira/demo/playground.tscn`, which runs with no setup on
   Hibira's demo app, or on your app from Project Settings. Also
-  [on the web](https://hibira-io.github.io/godot/).
+  [on the web](https://demos.hibira.io/godot/).
 
 ## 0.1.0
 
