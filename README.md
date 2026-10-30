@@ -20,7 +20,7 @@ extension, so it runs on every platform Godot exports to, the web included.
 
 Requires Godot 4.3 or later (CI runs 4.3 and 4.7).
 
-**Try it:** the [playground](https://hibira-io.github.io/godot/) is the demo
+**Try it:** the [playground](https://demos.hibira.io/godot/) is the demo
 scene in this addon exported for the web. Open it in two tabs, or send the
 link with its room code to a friend, and move the dots. In the editor, open
 `addons/hibira/demo/playground.tscn` and press F6; it works with no setup.

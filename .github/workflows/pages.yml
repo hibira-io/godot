@@ -1,6 +1,6 @@
 name: pages
 # The playground (addons/hibira/demo) as a web export on GitHub Pages
-# (https://hibira-io.github.io/godot/). It joins Hibira's public demo app
+# (https://demos.hibira.io/godot/). It joins Hibira's public demo app
 # through demo-api.hibira.io, so this needs no secrets.
 #
 # Deploys from main (Settings → Pages → Source: GitHub Actions); on pull
