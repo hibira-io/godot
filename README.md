@@ -1,5 +1,7 @@
 # Hibira Realtime for Godot
 
+![Hibira Realtime for Godot](.github/cover.jpg)
+
 A Pusher Channels protocol client for Godot 4, written in GDScript, for
 [Hibira](https://hibira.io) and other Pusher-compatible servers. No native
 extension, so it runs on every platform Godot exports to, the web included.
