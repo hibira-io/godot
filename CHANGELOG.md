@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+- `HibiraQueue`: a matchmaking queue on a presence channel, with no
+  matchmaking server. Players are matched by rating and criteria, the range
+  widens while they wait, they give up after a timeout, and each match moves
+  into a new `HibiraRoom`. It speaks the same `client-queue-match` event as
+  @hibira-io/lobby 0.2, so Godot, browser, Unity and Cocos Creator players
+  wait in one queue.
+- `HibiraMatch`: the matching rules on their own (`find_matches`,
+  `allowed_range`, `criteria_fit`).
+
 ## 0.2.1
 
 - `HibiraSync` splits its batches below 4 KB, the Free plan's limit for an

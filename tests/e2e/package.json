@@ -1,0 +1,14 @@
+{
+  "name": "hibira-godot-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Plays a matchmaking round between HibiraQueue and @hibira-io/lobby on a real server.",
+  "scripts": {
+    "test:queue": "node queue-e2e.mjs"
+  },
+  "dependencies": {
+    "@hibira-io/lobby": "^0.2.0",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0"
+  }
+}

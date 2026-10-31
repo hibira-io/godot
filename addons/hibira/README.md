@@ -17,6 +17,9 @@ extension, so it runs on every platform Godot exports to, the web included.
   start, and chat with typing indicators. It speaks the same events as
   [@hibira-io/lobby](https://github.com/hibira-io/lobby-js), so Godot and
   browser players can share a room.
+- `HibiraQueue`: a matchmaking queue with no matchmaking server. Players are
+  matched by rating and criteria and move into a new room together, in the
+  same queue as browser, Unity and Cocos Creator players.
 
 Requires Godot 4.3 or later (CI runs 4.3 and 4.7).
 
@@ -37,7 +40,7 @@ Copy the `addons/hibira` folder from this repository (or from a
 project's `addons/` folder, then turn it on in **Project → Project Settings →
 Plugins**. Turning the plugin on adds the `Hibira` autoload and the
 **Hibira** section to Project Settings. `HibiraClient`, `HibiraChannel`,
-`HibiraRoom` and `HibiraSync` are global classes, so they are available as
+`HibiraRoom`, `HibiraQueue` and `HibiraSync` are global classes, so they are available as
 soon as the files are in the project.
 
 ## Set up your app
@@ -47,7 +50,7 @@ In the [Hibira portal](https://hibira.io), create an app, then:
 - Copy the **key** from the app's **Overview → Credentials**. The secret is
   shown once, when the app is created; keep it on your backend only.
 - Turn on **Settings → Allow client events**: players send each other client
-  events (`HibiraRoom`, `HibiraSync`).
+  events (`HibiraRoom`, `HibiraQueue`, `HibiraSync`).
 - For a web export, add the page's origin (for example
   `https://yourname.itch.io`) to **Settings → Allowed origins**. The Free
   plan does not accept `*`, and an empty list blocks browsers. Native builds
@@ -206,6 +209,45 @@ and the lobby-js README shows Laravel. The rules (who may send what, what
 happens when the host leaves, the capacity race) are the same as in
 [@hibira-io/lobby](https://github.com/hibira-io/lobby-js#readme).
 
+## Matchmaking
+
+```gdscript
+var queue := HibiraQueue.join(hibira, "presence-queue-duo", {
+	"size": 2,            # players per match
+	"rating_range": 100,  # rating difference allowed at first,
+	"widen_by": 50,       # widened by 50
+	"widen_every": 5,     # every 5 seconds of waiting
+	"timeout": 60,        # seconds before giving up
+})
+queue.joined.connect(func(u): show_waiting(u.position, u.count))
+queue.updated.connect(func(u): show_waiting(u.position, u.count))
+queue.matched.connect(func(m): go_to_room(m.room)) # a HibiraRoom, already joining
+queue.timed_out.connect(func(_waited): show_no_match())
+
+queue.leave() # stop waiting
+```
+
+A queue is a presence channel. Your auth endpoint signs each player's
+`joined_at`, `rating` and `criteria` into `user_info`, with
+`authorizeQueue()` from `@hibira-io/lobby/server` in Node, so players cannot
+change their own rating or jump the queue. The player who has waited longest
+hosts the queue: it groups players and announces each match with one client
+event, and every matched player joins the room `presence-match-<random id>`.
+Criteria such as `{"mode": "duo", "region": ["hkg", "tyo"]}` must agree on
+every key two players both have. With `min_size` and `fill_after` (seconds),
+a player who has waited long enough takes a smaller match.
+
+Give every client the same options, because the host's are the ones that
+count. The rules are the same as in
+[@hibira-io/lobby](https://github.com/hibira-io/lobby-js#matchmaking-queue), and
+`HibiraMatch.find_matches()` runs them on any list of tickets, for example on
+your own server or in a test.
+
+The queue suits turn-based, casual and party games. It is not a fit for
+real-time action games or games that need tick sync; see
+[Moving from Photon PUN 2](https://github.com/hibira-io/unity/blob/main/Documentation~/moving-from-photon-pun-2.md)
+for where the line falls.
+
 ## Signals and methods
 
 `HibiraClient`
@@ -231,7 +273,7 @@ user sign-in (`pusher:signin`).
 Hibira's limits apply as for any client: client events are limited to 10 per
 second per connection, an event's data to 4 KB on the Free plan (more on paid
 plans), and presence channels hold up to 100 members. `HibiraSync` splits its
-batches below 4 KB.
+batches below 4 KB, and `HibiraQueue` its match announcements.
 
 ## Development
 
@@ -239,10 +281,13 @@ batches below 4 KB.
 godot --headless --import
 godot --headless --script res://tests/test_protocol.gd
 godot --headless --script res://tests/test_sync.gd
+godot --headless --script res://tests/test_queue.gd
 ```
 
 The tests feed Pusher protocol frames to the client and check what it sends
-back, with no network.
+back, with no network. `tests/e2e/queue-e2e.mjs` plays a matchmaking round
+between this addon and @hibira-io/lobby on a real server; its header says
+how to run it.
 
 The playground is the project's main scene. To export it for the web, install
 the export templates and run
