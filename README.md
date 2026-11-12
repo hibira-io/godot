@@ -22,6 +22,9 @@ extension, so it runs on every platform Godot exports to, the web included.
 - `HibiraQueue`: a matchmaking queue with no matchmaking server. Players are
   matched by rating and criteria and move into a new room together, in the
   same queue as browser, Unity and Cocos Creator players.
+- `HibiraAuctionHouse`: listings, live prices, countdowns and recent sales
+  of an auction house that your server runs with
+  [@hibira-io/auction](https://github.com/hibira-io/auction-js).
 
 Requires Godot 4.3 or later (CI runs 4.3 and 4.7).
 
@@ -42,7 +45,7 @@ Copy the `addons/hibira` folder from this repository (or from a
 project's `addons/` folder, then turn it on in **Project → Project Settings →
 Plugins**. Turning the plugin on adds the `Hibira` autoload and the
 **Hibira** section to Project Settings. `HibiraClient`, `HibiraChannel`,
-`HibiraRoom`, `HibiraQueue` and `HibiraSync` are global classes, so they are available as
+`HibiraRoom`, `HibiraQueue`, `HibiraAuctionHouse` and `HibiraSync` are global classes, so they are available as
 soon as the files are in the project.
 
 ## Set up your app
@@ -250,6 +253,32 @@ real-time action games or games that need tick sync; see
 [Moving from Photon PUN 2](https://github.com/hibira-io/unity/blob/main/Documentation~/moving-from-photon-pun-2.md)
 for where the line falls.
 
+## Auction house
+
+`HibiraAuctionHouse` follows an auction house, trading post or player market
+that your server runs with
+[@hibira-io/auction](https://github.com/hibira-io/auction-js) in Node. The
+server checks every bid and publishes each change once on `auction-<house>`;
+Godot, Unity and browser players see the same listings and countdowns.
+
+```gdscript
+var house := HibiraAuctionHouse.open(hibira, "main", "https://game.example.com/auction")
+house.changed.connect(func(): render(house.listings()))
+house.updated.connect(func(kind, l): if kind == "bid": flash(l.id))
+
+# In _process(): seconds left, on the server's clock.
+for l in house.listings():
+	show_time_left(l.id, house.time_left(l))
+```
+
+The URL is your server's GET that returns `house.snapshot()`. The house loads
+it on every subscription, including after a reconnect, and keeps the newest
+version of each listing. Listings are Dictionaries with the server's keys
+(`id`, `item`, `price`, `minBid`, `bidderId`, `endsAt`, `status`...);
+`closed()` holds recent sales and `prices(type)` the recent sale prices of an
+item type. Bids never go over the socket: send them to your own endpoints
+(`house.bid()` on the server), with the player taken from your session.
+
 ## Signals and methods
 
 `HibiraClient`
@@ -284,6 +313,7 @@ godot --headless --import
 godot --headless --script res://tests/test_protocol.gd
 godot --headless --script res://tests/test_sync.gd
 godot --headless --script res://tests/test_queue.gd
+godot --headless --script res://tests/test_auction.gd
 ```
 
 The tests feed Pusher protocol frames to the client and check what it sends

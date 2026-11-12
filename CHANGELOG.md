@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- `HibiraAuctionHouse`: follows an auction house run by @hibira-io/auction on
+  your server. It keeps the newest version of each listing from the
+  `auction-update` event, reloads the server's snapshot on every subscription,
+  keeps the countdowns on the server's clock, and has recent sales and sale
+  prices per item type.
+
 ## 0.3.0
 
 - `HibiraQueue`: a matchmaking queue on a presence channel, with no
